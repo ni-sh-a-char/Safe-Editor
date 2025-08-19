@@ -1,0 +1,1 @@
+Starter for enhancement/authentication-refactor: Refactor authentication to use bcrypt for password hashing and JWT for session management, improving security and enabling stateless auth for the editor.

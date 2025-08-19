@@ -1,0 +1,1 @@
+Starter for auth-jwt-token: Introduce JWT‑based authentication for the text editor, replacing plain SHA‑256 password storage.

@@ -1,0 +1,1 @@
+Starter for feature/password-reset: Add a secure password‑reset workflow with email verification, time‑limited JWT tokens, and full test coverage.

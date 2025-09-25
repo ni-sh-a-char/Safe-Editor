@@ -3,207 +3,193 @@
 
 ---  
 
-## Table of Contents  
-
-| Section | Description |
-|---------|-------------|
-| [Overview](#overview) | What Safe‑Editor does and why it matters |
-| [Features](#features) | Core capabilities |
-| [Installation](#installation) | How to get Safe‑Editor up and running |
-| [Quick‑Start](#quick-start) | One‑line demo |
-| [Usage](#usage) | CLI, GUI, and library usage |
-| [API Documentation](#api-documentation) | Public classes, functions and data structures |
-| [Examples](#examples) | Real‑world snippets (CLI, Python, and integration) |
-| [Configuration](#configuration) | Customising storage, hashing, and UI |
-| [Testing](#testing) | Running the test‑suite |
-| [Contributing](#contributing) | How to help |
-| [License](#license) | Open‑source terms |
+## Table of Contents
+1. [Overview](#overview)  
+2. [Installation](#installation)  
+3. [Quick Start / Usage](#quick-start--usage)  
+4. [Command‑Line Interface (CLI)](#command-line-interface-cli)  
+5. [API Documentation](#api-documentation)  
+6. [Code Examples](#code-examples)  
+7. [Configuration](#configuration)  
+8. [Testing](#testing)  
+9. [Contributing](#contributing)  
+10. [License](#license)  
 
 ---  
 
-## Overview  
-
+## Overview
 Safe‑Editor is a lightweight, cross‑platform text editor that requires a user to log in before any file can be opened, edited, or saved.  
-
-* **Security first** – usernames and passwords are never stored in plain text. They are hashed with **SHA‑256** and salted with a per‑user random 16‑byte value.  
-* **Pluggable storage** – by default credentials are kept in a local SQLite database (`.safe-editor.db`), but the storage backend can be swapped for JSON, PostgreSQL, or any custom implementation.  
-* **CLI & Python API** – use the bundled command‑line interface for quick editing, or import the library into your own Python projects.  
-
----  
-
-## Features  
-
-| ✅ | Feature |
-|---|---------|
-| ✅ | Secure password hashing (SHA‑256 + per‑user salt) |
-| ✅ | Automatic lock after configurable inactivity timeout |
-| ✅ | Syntax‑highlighted editing (via **pygments**) |
-| ✅ | File‑type detection & line numbers |
-| ✅ | Undo/redo stack |
-| ✅ | Extensible storage back‑ends (SQLite, JSON, custom) |
-| ✅ | Full Python API for embedding Safe‑Editor in other tools |
-| ✅ | Cross‑platform (Windows, macOS, Linux) |
-| ✅ | Unit‑tested (coverage > 90 %) |
+* **Security** – Usernames and passwords are never stored in plain text. They are hashed with **SHA‑256** and salted before persisting to the local SQLite database.  
+* **Extensible API** – The core functionality is exposed through a clean Python API, making it easy to embed the editor in other applications or to build custom front‑ends.  
+* **CLI & GUI** – By default the repository ships a terminal‑based UI (curses) and a minimal Qt5 GUI (`safe_editor_gui.py`). Both share the same backend logic.  
 
 ---  
 
 ## Installation  
 
-Safe‑Editor is distributed as a **Python package** and can be installed with `pip`. It requires Python 3.9+.
+### Prerequisites
+| Tool | Minimum version |
+|------|-----------------|
+| Python | 3.9 |
+| pip   | 21.0 |
+| Git   | any (for cloning) |
+| (Optional) Qt5 libraries – required only for the GUI (`safe_editor_gui.py`) |
 
+### 1️⃣ Clone the repository
 ```bash
-# 1️⃣ Create a virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-
-# 2️⃣ Install the package from PyPI
-pip install safe-editor
-
-# 3️⃣ (Optional) Install optional dependencies for GUI mode
-pip install "safe-editor[gui]"
-```
-
-### From source  
-
-```bash
-# Clone the repo
-git clone https://github.com/your-org/Safe-Editor.git
+git clone https://github.com/yourorg/Safe-Editor.git
 cd Safe-Editor
-
-# Install in editable mode (useful for development)
-pip install -e .[dev]   # includes test, lint, and GUI extras
 ```
 
-### System dependencies  
+### 2️⃣ Create a virtual environment (recommended)
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Linux/macOS
+# .venv\Scripts\activate    # Windows PowerShell
+```
 
-| Dependency | Reason |
-|------------|--------|
-| `python >=3.9` | Core interpreter |
-| `sqlite3` (bundled) | Default credential store |
-| `pygments` | Syntax highlighting |
-| `prompt-toolkit` | Rich CLI UI |
-| `PyQt5` (optional) | GUI mode (`safe-editor --gui`) |
-| `cryptography` | Secure random salt generation |
+### 3️⃣ Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+> **Tip:** The `requirements.txt` currently contains:
+```
+cryptography>=42.0.0
+SQLAlchemy>=2.0.0
+click>=8.0
+pyqt5>=5.15   # only needed for the GUI
+```
+
+### 4️⃣ (Optional) Install as a command‑line tool
+```bash
+pip install -e .
+# This adds the `safe-editor` entry point to your PATH.
+```
+
+You can now run `safe-editor --help` from any terminal.
 
 ---  
 
-## Quick‑Start  
+## Quick Start / Usage  
 
+### 1️⃣ Initialise the user database (run once)
 ```bash
-# Initialise the credential store (run once)
-safe-editor --init
-
-# Create a user (you will be prompted for a password)
-safe-editor --add-user alice
-
-# Open a file (you will be asked to log in)
-safe-editor notes.txt
+safe-editor init-db
 ```
+This creates a local SQLite file (`safe_editor.db`) in the project root and prompts you to create the first admin account.
 
-You should now see a full‑screen, syntax‑highlighted editor. Press `Ctrl‑S` to save, `Ctrl‑Q` to quit.
+### 2️⃣ Launch the editor (CLI)
+```bash
+safe-editor
+```
+You will be asked for a username and password. After successful authentication you can:
+* **Open** a file: `:open path/to/file.txt`
+* **Save** the current buffer: `:save` (or `:save path/to/file.txt`)
+* **Quit**: `:quit`
+
+### 3️⃣ Launch the GUI (if you installed PyQt5)
+```bash
+python safe_editor_gui.py
+```
+The same login dialog appears, followed by a simple text‑editing window.
 
 ---  
 
-## Usage  
+## Command‑Line Interface (CLI)
 
-### 1️⃣ Command‑Line Interface  
+The CLI is built with **Click** and provides the following commands:
 
+| Command | Description |
+|---------|-------------|
+| `safe-editor` | Starts the interactive terminal editor (default). |
+| `safe-editor init-db` | Initialise or reset the user database. |
+| `safe-editor add-user <username>` | Prompt for a password and add a new user. |
+| `safe-editor del-user <username>` | Delete an existing user (admin only). |
+| `safe-editor list-users` | Show all registered usernames. |
+| `safe-editor change-pass <username>` | Change password for a given user. |
+| `safe-editor --version` | Show the current version. |
+
+#### Global options
+* `--db PATH` – Path to the SQLite DB (default: `./safe_editor.db`).  
+* `--log-level LEVEL` – Set logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`).  
+
+#### Example
 ```bash
-safe-editor [OPTIONS] <file>
-```
-
-| Option | Description |
-|--------|-------------|
-| `-h, --help` | Show help and exit |
-| `--init` | Initialise the credential database (`.safe-editor.db`) |
-| `--add-user USERNAME` | Add a new user (prompts for password) |
-| `--remove-user USERNAME` | Delete a user |
-| `--list-users` | List all registered usernames |
-| `--gui` | Launch the optional Qt GUI instead of the TUI |
-| `--timeout SECS` | Override inactivity lock timeout (default = 300 s) |
-| `--no‑hash‑salt` | **⚠️** Store passwords without a salt (for testing only) |
-
-#### Example workflow  
-
-```bash
-# Initialise DB (first‑time only)
-safe-editor --init
-
-# Add two users
-safe-editor --add-user alice
-safe-editor --add-user bob
-
-# Edit a file as Alice
-safe-editor secret.txt   # you will be prompted for username/password
-
-# Edit a file with GUI
-safe-editor --gui diary.md
-```
-
-### 2️⃣ Python Library  
-
-Safe‑Editor can be imported and used programmatically.
-
-```python
-from safe_editor import SafeEditor, Authenticator, StorageSQLite
-
-# 1️⃣ Choose a storage backend (SQLite by default)
-store = StorageSQLite(db_path="my_credentials.db")
-
-# 2️⃣ Create an authenticator
-auth = Authenticator(storage=store)
-
-# 3️⃣ Register a user (only once)
-auth.register_user("alice", "S3cureP@ssw0rd!")
-
-# 4️⃣ Authenticate
-if auth.login("alice", "S3cureP@ssw0rd!"):
-    # 5️⃣ Open the editor instance
-    editor = SafeEditor(authenticator=auth)
-    editor.open_file("notes.txt")
-    # The editor runs a blocking TUI loop; when it returns the file is saved.
-else:
-    raise PermissionError("Invalid credentials")
-```
-
-#### Minimal “headless” usage (no UI)  
-
-```python
-from safe_editor import Authenticator, StorageSQLite, FileManager
-
-store = StorageSQLite()
-auth = Authenticator(store)
-
-auth.register_user("bob", "My$ecret")
-assert auth.login("bob", "My$ecret")
-
-fm = FileManager(auth)          # Handles encryption‑aware read/write
-content = fm.read("project.py")
-print(content)
-fm.write("project.py", content + "\n# edited by bob")
+safe-editor add-user alice
+# → prompts for password, stores SHA‑256 hash + random 16‑byte salt.
 ```
 
 ---  
 
 ## API Documentation  
 
-Below is a concise reference for the public API. Full doc‑strings are available in the source (`safe_editor/*.py`) and via `pydoc safe_editor`.
+All public classes live in the `safe_editor` package. Below is a high‑level overview; full doc‑strings are available in the source code and via `pydoc`.
 
 ### `safe_editor.auth.Authenticator`
+Handles user registration, login, and password verification.
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `__init__` | `Authenticator(storage: BaseStorage, *, pepper: bytes = b"")` | Initialise with a storage backend. `pepper` is an optional global secret added to every hash. |
-| `register_user` | `register_user(username: str, password: str) -> None` | Hashes `password` with a random 16‑byte salt, stores `username`, `salt`, and `hash`. Raises `UserExistsError` if the name already exists. |
-| `login` | `login(username: str, password: str) -> bool` | Verifies the supplied password against the stored hash. On success, sets `self.current_user`. |
-| `logout` | `logout() -> None` | Clears the current session. |
-| `change_password` | `change_password(username: str, old_pw: str, new_pw: str) -> None` | Validates `old_pw` then updates the stored hash with a fresh salt. |
-| `is_authenticated` | `is_authenticated() -> bool` | Returns `True` if a user is logged in. |
-| `current_user` | `property` | Returns the username of the logged‑in user (or `None`). |
+| `register(username: str, password: str) -> None` | `register(username, password)` | Creates a new user entry. Password is salted and hashed with SHA‑256 before storage. |
+| `login(username: str, password: str) -> bool` | `login(username, password)` | Returns `True` if the supplied password matches the stored hash. |
+| `change_password(username: str, new_password: str) -> None` | `change_password(username, new_password)` | Re‑hashes the new password with a fresh salt. |
+| `delete_user(username: str) -> None` | `delete_user(username)` | Removes a user from the DB (admin only). |
+| `list_users() -> List[str]` | `list_users()` | Returns a list of all usernames. |
 
-### `safe_editor.storage.BaseStorage` (abstract)
+### `safe_editor.editor.Editor`
+Core text‑editing engine (no UI).
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `add_user` | `add_user(username: str, salt: bytes, pwd_hash: bytes) -> None` | Persist a new user record. |
-| `get_user` | `get_user(username: str) -> Tuple[bytes, bytes] | None` | Retrieve `(salt, pwd_hash)`
+| `load(path: str) -> None` | `load(path)` | Reads a file into the internal buffer (`self.buffer`). |
+| `save(path: Optional[str] = None) -> None` | `save(path=None)` | Writes the buffer to `path` (or the original file if `path` is `None`). |
+| `insert(line_no: int, text: str) -> None` | `insert(line_no, text)` | Inserts `text` at the given line number. |
+| `delete(line_no: int) -> None` | `delete(line_no)` | Deletes the line at `line_no`. |
+| `replace(line_no: int, text: str) -> None` | `replace(line_no, text)` | Replaces the content of a line. |
+| `get_buffer() -> List[str]` | `get_buffer()` | Returns a copy of the current buffer. |
+| `search(pattern: str, regex: bool = False) -> List[int]` | `search(pattern, regex=False)` | Returns line numbers that match the pattern. |
+
+### `safe_editor.db.Database`
+Thin wrapper around SQLAlchemy for persistence.
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `engine` (property) | `engine` | SQLAlchemy engine instance. |
+| `session()` | `session()` | Context‑manager returning a scoped session. |
+| `create_all()` | `create_all()` | Creates tables if they don’t exist. |
+| `drop_all()` | `drop_all()` | Drops all tables (dangerous – used only in tests). |
+
+### Exceptions
+* `AuthenticationError` – Raised when login fails.  
+* `UserExistsError` – Raised on duplicate registration.  
+* `UserNotFoundError` – Raised when a username cannot be located.  
+* `FileIOError` – Raised for any file‑system related problem (permission, missing file, etc.).  
+
+---  
+
+## Code Examples  
+
+### 1️⃣ Using the API programmatically
+```python
+from safe_editor.auth import Authenticator
+from safe_editor.editor import Editor
+
+# ----------------------------------------------------------------------
+# 1. Authenticate the user
+# ----------------------------------------------------------------------
+auth = Authenticator(db_path="my_safe_editor.db")
+if not auth.login("bob", "s3cr3t!"):
+    raise PermissionError("Invalid credentials")
+
+# ----------------------------------------------------------------------
+# 2. Work with the editor
+# ----------------------------------------------------------------------
+ed = Editor()
+ed.load("notes.txt")               # load existing file
+ed.insert(0, "# My Daily Notes")   # prepend a title
+ed.replace(5, "Updated line content")
+ed.save()                          # writes back to notes.txt
+
+print("Current buffer:")
+for i, line in enumerate(ed.get_buffer(),
